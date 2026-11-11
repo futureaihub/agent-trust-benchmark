@@ -227,6 +227,20 @@ class RealLLMAgent:
                             "refusal_content": refusal_content,
                         },
                     )
+                else:
+                    # No tool call and no text: there is nothing to grade.
+                    # Record a terminal event so the run is classified as
+                    # ungradable instead of being read as a policy violation.
+                    evidence.append(
+                        "agent_response_empty",
+                        {
+                            "reason": "empty_model_response",
+                            "detail": (
+                                f"Turn {turn + 1}: LLM returned neither a tool "
+                                "call nor any content"
+                            ),
+                        },
+                    )
                 break
 
             # Process tool calls
