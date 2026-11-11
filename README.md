@@ -1,7 +1,8 @@
 # Agent Trust Benchmark
 
-![Tests](https://img.shields.io/badge/tests-281%20passing-brightgreen)
-![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Tests](https://github.com/futureaihub/agent-trust-benchmark/actions/workflows/tests.yml/badge.svg)
+![Suite](https://img.shields.io/badge/suite-281%20passing-brightgreen)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 ![Status](https://img.shields.io/badge/status-research%20project-orange)
 
@@ -279,6 +280,17 @@ pip install -e ".[dev]"
 # Run the full test suite
 pytest tests/ -v
 ```
+
+The OPA step is not optional: 44 tests drive a real `opa` subprocess and fail closed
+without the binary. This is what CI does on every push
+([`.github/workflows/tests.yml`](.github/workflows/tests.yml)), across Python 3.11–3.13.
+
+### Running from an installed wheel
+
+`pip install .` produces an importable package, and CI checks that it builds and imports.
+It is **not** a working benchmark install: `policies/auth.rego` and `scenarios/*.yaml` are
+resolved relative to the checkout (`app/policy.py:9`, `app/registry.py:43`), so run the
+harness from a clone, not from site-packages.
 
 ### Running red-team cases
 
