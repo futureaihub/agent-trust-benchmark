@@ -1,6 +1,6 @@
 # Agent Trust Benchmark
 
-![Tests](https://img.shields.io/badge/tests-258%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-265%20passing-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 ![Status](https://img.shields.io/badge/status-research%20project-orange)
@@ -199,21 +199,22 @@ To confirm the harness works against a real model rather than only scripted stub
 
 The project has four distinct kinds of tests, and it's worth keeping them separate — they check different things and carry different guarantees.
 
-### Automated tests — 258 pytest tests, all passing
+### Automated tests — 265 pytest tests, all passing
 
 | Module | Tests | Covers |
 |--------|:-----:|--------|
 | `test_evidence.py` | 12 | Evidence chain integrity |
 | `test_policy_gateway.py` | 11 | OPA policy enforcement |
 | `test_agent.py` | 6 | Agent stub integration |
-| `test_adapter.py` | 8 | AgentAdapter protocol |
-| `test_tool_gateway.py` | 11 | ToolGateway enforcement |
-| `test_registry.py` | 9 | YAML scenario loading |
-| `test_run_config.py` | 8 | RunConfig validation |
+| `test_adapter.py` | 12 | AgentAdapter protocol |
+| `test_tool_gateway.py` | 13 | ToolGateway enforcement |
+| `test_registry.py` | 20 | YAML scenario loading |
+| `test_run_config.py` | 30 | RunConfig validation |
 | `test_real_agent.py` | 17 | RealLLMAgent adapter |
 | `test_verdict.py` | 23 | Verdict evaluation (Scenario 1) |
+| `test_verdict_multicall.py` | 7 | Multi-call grading: per-call sequence, run-level state |
 | `test_verdict_scenario2.py` | 15 | Verdict evaluation (Scenario 2) |
-| `test_verdict_scenario3.py` | 25 | Verdict evaluation (Scenario 3) |
+| `test_verdict_scenario3.py` | 28 | Verdict evaluation (Scenario 3) |
 | `test_verdict_scenario4.py` | 11 | Verdict evaluation (Scenario 4) |
 | `test_cross_scenario.py` | 15 | Cross-scenario isolation |
 | `test_refusal.py` | 15 | Refusal / early-termination semantics |
