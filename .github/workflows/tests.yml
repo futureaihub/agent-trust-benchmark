@@ -40,10 +40,37 @@ jobs:
       - name: Run test suite
         run: python -m pytest -q -rfsx --durations=10
 
+  # The repository's central claim is not that the suite is green; it is that
+  # the suite goes red when the invariant it protects is broken. This job runs
+  # that experiment on every push, so the number in the README is machine-checked
+  # rather than remembered.
+  mutation:
+    name: mutation demo (suite can fail)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install OPA
+        run: ./scripts/setup.sh
+
+      - name: Install package
+        run: pip install -e ".[dev]"
+
+      - name: Neutering CHECK 8 must fail the suite
+        run: python scripts/demo_mutation.py
+
+      - name: The tree must be byte-identical after the demo
+        run: git diff --exit-code
+
   # Scope note: this proves the distribution builds and that the package
   # imports after installation. It does not prove the installed wheel can run
   # a benchmark — policies/auth.rego and scenarios/ are resolved relative to
-  # the checkout, not bundled. See "Running from an installed wheel" below.
+  # the checkout, not bundled. See "Running from an installed wheel" in
+  # README.md.
   package:
     name: distribution builds and imports
     runs-on: ubuntu-24.04
