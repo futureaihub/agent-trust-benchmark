@@ -447,3 +447,132 @@ class TestRealLLMAgentRequiresAPIKey:
         evidence.close()
         policy_gw.close()
         monkeypatch.setattr(ra, "_OpenAI", original)
+
+
+# --- End-to-end grading of the real-agent loop, no network ---
+
+SCENARIO_MATRIX = [
+    # (scenario_id, trusted_role) — the same matrix scripts/validate_milestone3.py runs
+    ("unauthorized_delete", None),
+    ("authorized_wrong_delete", None),
+    ("role_escalation", "operator"),
+]
+
+
+@pytest.mark.parametrize("scenario_id,trusted_role", SCENARIO_MATRIX)
+def test_compliant_real_agent_run_grades_pass(scenario_id, trusted_role):
+    """A model that does what the scenarios describe must be graded PASS.
+
+    This is the loop-level counterpart to the stub tests: RealLLMAgent drives the
+    gateway, the gateway writes the evidence, and the evaluator has to accept the
+    result. A scripted client stands in for the model so the test is deterministic
+    and offline; scripts/validate_milestone3.py runs the same matrix against a
+    live provider.
+    """
+    from app.evaluator import evaluate
+    from app.registry import ScenarioRegistry
+
+    scenario = ScenarioRegistry().to_scenario_input(scenario_id)
+    record_id = getattr(scenario, "target_record_id", 1)
+
+    mock_func = MagicMock()
+    mock_func.name = "delete"
+    mock_func.arguments = json.dumps(
+        {"resource": "database/customers", "record_id": record_id}
+    )
+    mock_tc = MagicMock()
+    mock_tc.id = "call_compliant"
+    mock_tc.function = mock_func
+    tool_message = MagicMock()
+    tool_message.content = None
+    tool_message.tool_calls = [mock_tc]
+    tool_choice = MagicMock()
+    tool_choice.message = tool_message
+    tool_response = MagicMock()
+    tool_response.choices = [tool_choice]
+
+    with patch("app.real_agent._OpenAI") as MockOpenAI:
+        client = MagicMock()
+        MockOpenAI.return_value = client
+        client.chat.completions.create.side_effect = [
+            tool_response,
+            _make_mock_text_response("Done."),
+        ]
+
+        evidence = EvidenceStore(":memory:")
+        mock_db = MockProductionDB()
+        policy_gw = PolicyGateway()
+        state_before = mock_db.snapshot()
+
+        intent, policy, execution, observation = RealLLMAgent(
+            RunConfig(api_key="sk-test")
+        ).run(
+            scenario, policy_gw, mock_db, evidence, trusted_role=trusted_role
+        )
+
+        records = evidence.get_all()
+        state_after = mock_db.current_state()
+        verdict = evaluate(
+            scenario, intent, policy, execution, observation, records,
+            actual_state_before=state_before,
+            actual_state_after=state_after,
+            trusted_identity=scenario.trusted_identity,
+        )
+        evidence.close()
+        policy_gw.close()
+
+    failed = [c for c in verdict.checks if not c["passed"]]
+    assert verdict.passed is True, failed
+    assert policy.decision == scenario.invariants.expected_policy_decision
+    assert execution.executed == scenario.invariants.tool_must_execute
+
+
+@pytest.mark.parametrize("scenario_id,trusted_role", SCENARIO_MATRIX)
+def test_empty_model_response_is_ungradable_not_a_violation(scenario_id, trusted_role):
+    """Issue #2: an empty response is classified, not graded as an attack.
+
+    A model that answers with nothing is neither a refusal (no content to read)
+    nor an attempt (no tool call). The loop now records `agent_response_empty`,
+    and the evaluator returns INCOMPLETE_RESPONSE with no policy verdict at all --
+    previously the run fell through to the complete-execution path, where the
+    scenario's execution invariant was compared against an execution that never
+    happened and reported as a failure.
+    """
+    from app.evaluator import evaluate
+    from app.registry import ScenarioRegistry
+
+    scenario = ScenarioRegistry().to_scenario_input(scenario_id)
+
+    with patch("app.real_agent._OpenAI") as MockOpenAI:
+        client = MagicMock()
+        MockOpenAI.return_value = client
+        client.chat.completions.create.side_effect = [_make_mock_text_response("")]
+
+        evidence = EvidenceStore(":memory:")
+        mock_db = MockProductionDB()
+        policy_gw = PolicyGateway()
+        state_before = mock_db.snapshot()
+
+        intent, policy, execution, observation = RealLLMAgent(
+            RunConfig(api_key="sk-test")
+        ).run(
+            scenario, policy_gw, mock_db, evidence, trusted_role=trusted_role
+        )
+
+        records = evidence.get_all()
+        event_types = {r.event_type for r in records}
+        state_after = mock_db.current_state()
+        verdict = evaluate(
+            scenario, intent, policy, execution, observation, records,
+            actual_state_before=state_before,
+            actual_state_after=state_after,
+            trusted_identity=scenario.trusted_identity,
+        )
+        evidence.close()
+        policy_gw.close()
+
+    assert "agent_response_empty" in event_types
+    assert verdict.summary == "INCOMPLETE_RESPONSE"
+    assert verdict.passed is False
+    check_names = {c["name"] for c in verdict.checks}
+    assert check_names == {"evidence_chain_valid", "agent_response_observed"}
