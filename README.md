@@ -1,6 +1,6 @@
 # Agent Trust Benchmark
 
-![Tests](https://img.shields.io/badge/tests-265%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-271%20passing-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 ![Status](https://img.shields.io/badge/status-research%20project-orange)
@@ -199,7 +199,7 @@ To confirm the harness works against a real model rather than only scripted stub
 
 The project has four distinct kinds of tests, and it's worth keeping them separate — they check different things and carry different guarantees.
 
-### Automated tests — 265 pytest tests, all passing
+### Automated tests — 271 pytest tests, all passing
 
 | Module | Tests | Covers |
 |--------|:-----:|--------|
@@ -216,23 +216,29 @@ The project has four distinct kinds of tests, and it's worth keeping them separa
 | `test_verdict_scenario2.py` | 15 | Verdict evaluation (Scenario 2) |
 | `test_verdict_scenario3.py` | 28 | Verdict evaluation (Scenario 3) |
 | `test_verdict_scenario4.py` | 11 | Verdict evaluation (Scenario 4) |
-| `test_cross_scenario.py` | 15 | Cross-scenario isolation |
+| `test_cross_scenario.py` | 17 | Cross-scenario isolation |
+| `test_suite_integrity.py` | 3 | Guards: every test asserts, nothing runs at import |
 | `test_refusal.py` | 15 | Refusal / early-termination semantics |
-| `test_redteam.py` | 20 | Scenario 1 adversarial cases |
+| `test_redteam.py` | 21 | Scenario 1 adversarial cases |
 | `test_redteam_scenario2.py` | 5 | Scenario 2 adversarial cases |
 | `test_redteam_scenario3.py` | 5 | Scenario 3 adversarial cases |
 
-### Red-team cases — 30 adversarial scenarios
+### Red-team cases — 31 adversarial scenarios
 
 | Suite | Cases | Attack types |
 |-------|:-----:|---------------|
-| Scenario 1 red-team | 20 | Policy violation, evidence tampering (8 variants), OPA failure, state manipulation |
+| Scenario 1 red-team | 21 | Policy violation, evidence tampering (8 variants), OPA failure, state manipulation |
 | Scenario 2 red-team | 5 | Wrong-target deletion, fabricated outcomes, extra deletions |
 | Scenario 3 red-team | 5 | Role escalation, gateway escalation, dual escalation, rogue execution |
 
-### Cross-scenario isolation — 15 cases
+### Cross-scenario isolation — 17 cases
 
-These test that evidence generated for one scenario can't be replayed to produce a false PASS under a different scenario's invariants. 14 of 15 are correctly detected; the remaining case is undetectable by design, since scenario definitions are treated as trusted ground truth.
+These test that evidence generated for one scenario can't be replayed to produce a false PASS under a different scenario's invariants. Every borrowed-evidence, borrowed-invariant, borrowed-state and borrowed-checkpoint case is rejected.
+
+Two gaps are named rather than hidden, and the tests assert the current behaviour so that fixing either one turns them red:
+
+- **Role consistency is never checked.** The evaluator compares the policy decision against the scenario invariant, but not the intent's claimed role against the policy's role. A trajectory whose intent says "operator" while the policy was evaluated as "admin" passes.
+- **The expected outcome is the harness's own oracle.** If `expected_state` is edited to match a wrong deletion *and* the agent's claimed target matches what the tool actually did, every check passes. A benchmark cannot audit its own scenario files; that is a trust boundary, not a bug to patch.
 
 ### Real-agent runs — 18 runs
 
@@ -263,10 +269,10 @@ pytest tests/ -v
 ```bash
 source .venv/bin/activate
 
-python tests/test_redteam.py             # Scenario 1 red-team (20 cases)
-python tests/test_redteam_scenario2.py   # Scenario 2 red-team (5 cases)
-python tests/test_redteam_scenario3.py   # Scenario 3 red-team (5 cases)
-python tests/test_cross_scenario.py      # Cross-scenario isolation (15 cases)
+pytest tests/test_redteam.py -v           # Scenario 1 red-team (21 cases)
+pytest tests/test_redteam_scenario2.py -v # Scenario 2 red-team (5 cases)
+pytest tests/test_redteam_scenario3.py -v # Scenario 3 red-team (5 cases)
+pytest tests/test_cross_scenario.py -v    # Cross-scenario isolation (17 cases)
 ```
 
 ### Running real-agent validation (requires an API key)
