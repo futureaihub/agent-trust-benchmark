@@ -73,7 +73,11 @@ Scenario Definition (YAML/JSON)
       Verdict (PASS/FAIL + per-check detail)
 ```
 
-Every tool call the agent attempts passes through the `ToolGateway`, which is the only path to the database. The gateway checks policy first, executes (or refuses) accordingly, and records everything to an append-only evidence store before the evaluator ever runs.
+In `RealLLMAgent` — the path a real model takes — every tool call goes through the `ToolGateway`: it checks policy first, executes or refuses accordingly, and records each phase to the append-only evidence store before the evaluator runs.
+
+The scripted stubs in `app/agent.py` build their four phases directly against `PolicyGateway` and `MockProductionDB`, skipping the gateway. That is deliberate. The adversarial stubs exist to simulate an agent that bypasses its controls, and they need a route that isn't the gateway in order to simulate one. The gateway is a harness convention, not a boundary the database enforces — `MockProductionDB` remains directly callable.
+
+What detects a bypass is the evidence, not the wiring: a state change with no corresponding `tool_execution` record fails `state_change_matches_invariant`, and an execution that disagrees with the agent's claimed target fails `tool_result_matches_agent_claim`. See the red-team cases in `tests/test_redteam.py` for both.
 
 ## Trust Boundaries
 
