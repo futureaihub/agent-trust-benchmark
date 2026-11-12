@@ -12,6 +12,16 @@ It does not ask an agent to explain itself and does not ask a second LLM to judg
 
 **This is not** a production authorization system, a general-purpose agent security platform, or a published benchmark with model rankings. It's a harness for testing one thing carefully: whether an agent's actions and claims hold up under scrutiny.
 
+**And it can be checked without trusting me.** Break the outcome check and watch the suite catch it:
+
+```bash
+git clone https://github.com/futureaihub/agent-trust-benchmark && cd agent-trust-benchmark
+./scripts/setup.sh && python3 -m venv .venv && ./.venv/bin/pip install -e ".[dev]"
+./.venv/bin/python scripts/demo_mutation.py    # 281 passed -> 267 passed, 14 failed
+```
+
+A green suite is only evidence if it can go red. CI runs that same demo on every push, alongside the suite on Python 3.11–3.13.
+
 ## Table of Contents
 
 - [Why It Exists](#why-it-exists)
