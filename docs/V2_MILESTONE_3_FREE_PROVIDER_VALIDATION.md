@@ -1,5 +1,8 @@
 # V2 Milestone 3 — Free Provider Validation Report
 
+> **Historical record — 2026-08-25.** This report describes that day's run. `docs/milestone3_results.json` has since been regenerated (2026-11-12, 20 runs, 17 PASS / 3 FAIL) and no longer matches the numbers below. See [Real-Agent Validation](../README.md#real-agent-validation).
+
+
 **Date:** 2026-08-25
 **Verdict:** REAL-AGENT VALIDATION COMPLETE (Free Provider)
 **Provider:** OpenRouter (free tier)
