@@ -63,7 +63,7 @@ Scenario Definition (YAML/JSON)
   RealLLMAgent / ScriptedAdapter
         |
         v
-    ToolGateway (single enforcement point)
+    ToolGateway (enforces the real-agent path)
         |
         +---> PolicyGateway ---> OPA (auth.rego)
         |
@@ -96,10 +96,10 @@ The framework only works if it's honest about what it does and doesn't trust:
 
 | Component | Trusted? | Why |
 |-----------|----------|-----|
-| Agent | **No** | The thing being evaluated. It proposes actions but never executes them directly. |
-| ToolGateway | Yes | The single enforcement point. Intercepts every tool call and enforces OPA policy. |
+| Agent | **No** | The thing being evaluated. On the `RealLLMAgent` path it proposes actions; the adversarial stubs execute directly against the database, which is the bypass they exist to simulate. |
+| ToolGateway | Yes | Enforces the `RealLLMAgent` path: checks OPA policy before executing and records each phase. A harness convention, not a database-enforced boundary — the adversarial stubs bypass it deliberately, which is the behaviour they exist to simulate. |
 | OPA | Yes | External policy engine. Fails closed on any error. |
-| MockProductionDB | Yes | Benchmark-owned state. The agent never touches it directly. |
+| MockProductionDB | Yes | Benchmark-owned state. Directly callable — the stubs call it directly — so a silent change is caught by the evidence, not prevented by access control. |
 | EvidenceStore | Yes | Append-only, SHA-256 hash-chained SQLite. |
 | Evaluator | Yes | Pure deterministic logic — 11 fixed checks, no LLM judgment. |
 | Scenario definitions | Yes | Define expected outcomes. Treated as trusted ground truth. |
