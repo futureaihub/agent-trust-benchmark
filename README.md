@@ -240,6 +240,29 @@ The project has four distinct kinds of tests, and it's worth keeping them separa
 | `test_redteam_scenario2.py` | 5 | Scenario 2 adversarial cases |
 | `test_redteam_scenario3.py` | 5 | Scenario 3 adversarial cases |
 
+### Can the suite fail? — one command, ~30s
+
+A green suite is only evidence if it can go red. `scripts/demo_mutation.py` checks that:
+
+```bash
+python scripts/demo_mutation.py
+```
+
+```
+baseline: running the suite unmodified
+  281 passed, 0 failed
+mutation: CHECK 8 now returns True without comparing anything
+  267 passed, 14 failed
+
+  baseline             281 passed,    0 failed
+  CHECK 8 neutered     267 passed,   14 failed
+  evaluator restored  sha256 bd7e12d66cb8be76... (byte-identical)
+```
+
+It edits `app/evaluator.py` in place, restores it byte-for-byte in a `finally` block, and verifies the SHA-256 afterwards. Its exit code is inverted on purpose: it returns non-zero if the mutation is **not** caught, because a suite that stays green with a broken invariant is not a suite. CI runs it on every push.
+
+Before the work described in the issue history, the same mutation produced **8** failures, and four red-team modules could not fail at all — 45 functions named `test_*` printed `[PASS]` and asserted nothing.
+
 ### Red-team cases — 31 adversarial scenarios
 
 | Suite | Cases | Attack types |
