@@ -1,5 +1,8 @@
 # V2 Milestone 3 — Real Agent Validation
 
+> **Historical record — 2026-08-25.** This report describes that day's run. `docs/milestone3_results.json` has since been regenerated (2026-11-12, 20 runs, 17 PASS / 3 FAIL) and no longer matches the numbers below. See [Real-Agent Validation](../README.md#real-agent-validation).
+
+
 **Date:** 2026-08-25
 **Status:** BLOCKED — invalid API key prevents live model execution
 
